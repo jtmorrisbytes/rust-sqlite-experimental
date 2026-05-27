@@ -1,0 +1,18 @@
+[package]
+name = "sqlite"
+version = "0.1.0"
+edition = "2024"
+
+
+[lib]
+
+[dependencies]
+dashmap = "6.2.1"
+
+[build-dependencies]
+cc = "1.2.62"
+
+# we are promising not to panic,
+# as this will abort the program
+[profile.release]
+panic="abort"

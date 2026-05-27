@@ -22,30 +22,41 @@ typedef struct PCache PCache;
 ** Every page in the cache is controlled by an instance of the following
 ** structure.
 */
-struct PgHdr {
-  sqlite3_pcache_page *pPage;    /* Pcache object page handle */
-  void *pData;                   /* Page data */
-  void *pExtra;                  /* Extra content */
-  PCache *pCache;                /* PRIVATE: Cache that owns this page */
-  PgHdr *pDirty;                 /* Transient list of dirty sorted by pgno */
-  Pager *pPager;                 /* The pager this page is part of */
-#ifdef SQLITE_CHECK_PAGES
-  u64 pageHash;                  /* Hash of page content */
-#endif
-  Pgno pgno;                     /* Page number for this page */
-  u16 flags;                     /* PGHDR flags defined below */
 
-  /**********************************************************************
-  ** Elements above, except pCache, are public.  All that follow are 
-  ** private to pcache.c and should not be accessed by other modules.
-  ** pCache is grouped with the public elements for efficiency.
-  */
-  i64 nRef;                      /* Number of users of this page */
-  PgHdr *pDirtyNext;             /* Next element in list of dirty pages */
-  PgHdr *pDirtyPrev;             /* Previous element in list of dirty pages */
-                          /* NB: pDirtyNext and pDirtyPrev are undefined if the
-                          ** PgHdr object is not dirty */
+// Jordan: with respect to the original author or engineers
+// I gutted the linked list heavy pcache in favor of a flat memory model
+// that will most likely be backed by memmap.
+// I am very excited for this as I am using rust
+// and this has allowed me to 'un oxidize' the code base.
+// see sqlite3r_pcache.h in src/ for more details
+struct PgHdr {
+  size_t page_id;  /* Pure 0-indexed hardware array offset position */
 };
+
+// struct PgHdr {
+//   sqlite3_pcache_page *pPage;    /* Pcache object page handle */
+//   void *pData;                   /* Page data */
+//   void *pExtra;                  /* Extra content */
+//   PCache *pCache;                /* PRIVATE: Cache that owns this page */
+//   PgHdr *pDirty;                 /* Transient list of dirty sorted by pgno */
+//   Pager *pPager;                 /* The pager this page is part of */
+// #ifdef SQLITE_CHECK_PAGES
+//   u64 pageHash;                  /* Hash of page content */
+// #endif
+//   Pgno pgno;                     /* Page number for this page */
+//   u16 flags;                     /* PGHDR flags defined below */
+
+//   /**********************************************************************
+//   ** Elements above, except pCache, are public.  All that follow are 
+//   ** private to pcache.c and should not be accessed by other modules.
+//   ** pCache is grouped with the public elements for efficiency.
+//   */
+//   i64 nRef;                      /* Number of users of this page */
+//   PgHdr *pDirtyNext;             /* Next element in list of dirty pages */
+//   PgHdr *pDirtyPrev;             /* Previous element in list of dirty pages */
+//                           /* NB: pDirtyNext and pDirtyPrev are undefined if the
+//                           ** PgHdr object is not dirty */
+// };
 
 /* Bit values for PgHdr.flags */
 #define PGHDR_CLEAN           0x001  /* Page not on the PCache.pDirty list */

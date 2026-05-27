@@ -1,0 +1,4 @@
+[build]
+# This tells LLVM to aggressively use the maximum SIMD instruction set 
+# supported by your physical CPU (AVX2, AVX-512) for your vector blits!
+rustflags = ["-C", "target-cpu=native"]
