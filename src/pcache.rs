@@ -420,20 +420,15 @@ pub unsafe extern "C" fn sqlite3r_pcache_get_capacity() -> NonZeroUsize {
     cache.size
 }
 
-
-// this is the hardware gold. we replace the complicated cace eviction (for now)
-// via linked lists with a flat memory layout
-/// # Safety
-/// Enforced Contract: `p_page` must be a valid pointer belonging to this thread's contiguous cache.
-#[inline(always)]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn sqlite3r_pcache_ptr_to_id(p_page: *mut u8) -> usize {
-    let cell_ptr = THREAD_LOCAL_PAGECACHE.with(|cell| cell.get());
-    let cache = (*cell_ptr).assume_init_ref();
+// #[inline(always)]
+// #[unsafe(no_mangle)]
+// pub unsafe extern "C" fn sqlite3r_pcache_ptr_to_id(p_page: *mut u8) -> usize {
+//     let cell_ptr = THREAD_LOCAL_PAGECACHE.with(|cell| cell.get());
+//     let cache = (*cell_ptr).assume_init_ref();
     
-    // Calculate byte distance from our NonNull base location
-    let distance = p_page.offset_from(cache.ptr.as_ptr());
+//     // Calculate byte distance from our NonNull base location
+//     let distance = p_page.offset_from(cache.ptr.as_ptr());
     
-    // Distance / 4096. Compiles down to a single hardware right-shift: SHR RAX, 12
-    (distance as usize).unchecked_shr(12)
-}
+//     // Distance / 4096. Compiles down to a single hardware right-shift: SHR RAX, 12
+//     (distance as usize).unchecked_shr(12)
+// }

@@ -23,7 +23,7 @@ typedef struct PCache PCache;
 ** structure.
 */
 
-// Jordan: with respect to the original author or engineers
+// Jordan: with respect to the original authors and engineers
 // I gutted the linked list heavy pcache in favor of a flat memory model
 // that will most likely be backed by memmap.
 // I am very excited for this as I am using rust
@@ -31,6 +31,7 @@ typedef struct PCache PCache;
 // see sqlite3r_pcache.h in src/ for more details
 struct PgHdr {
   size_t page_id;  /* Pure 0-indexed hardware array offset position */
+  void *pPager;    /* Back-pointer to the owning master Pager structure */
 };
 
 // struct PgHdr {

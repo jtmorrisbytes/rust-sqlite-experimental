@@ -2,3 +2,8 @@
 # This tells LLVM to aggressively use the maximum SIMD instruction set 
 # supported by your physical CPU (AVX2, AVX-512) for your vector blits!
 rustflags = ["-C", "target-cpu=native"]
+
+# Target configuration specifically for x86_64 Windows (MSVC)
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+avx2"]
+

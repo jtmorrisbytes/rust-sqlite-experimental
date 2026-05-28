@@ -16,3 +16,14 @@ cc = "1.2.62"
 # as this will abort the program
 [profile.release]
 panic="abort"
+
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "mem_sqlite3vec_partialeq"
+harness = false # D
+
+[target.'cfg(target_os="windows")'.dependencies]
+windows = "0.62.2"

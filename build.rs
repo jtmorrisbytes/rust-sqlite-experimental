@@ -90,22 +90,26 @@ fn main() {
     assert!(lemon_status.success(), "Lemon failed to process parse.y");
 
     generate_opcodes();
+
+    // the C source is broken right now and wont compile :(
+
+
     // 2. Configure the C compiler engine
-    cc::Build::new()
-        // Include the folder containing the SQLite header files
-        .include("c_src")
-        .include("src")
-        // Add the specific SQLite subsystems you want to compile alongside Rust
-        .file("c_src/parse.c")
-        .file("c_src/vdbe.c")
-        .file("c_src/pager.c")
-        .file("c_src/btree.c")
-        // SQLite relies heavily on SQLITE_OMIT flags to strip features.
-        // For our Ninja port, we can aggressively strip out things we don't need!
-        .define("SQLITE_OMIT_PARSER", None)
-        .define("SQLITE_OMIT_AUTOVACUUM", None)
-        // Enable high optimization flags for the C side
-        .flag("-O3")
-        // Compile everything into a static library called "libsqlite_core.a"
-        .compile("sqlite_core");
+    // cc::Build::new()
+    //     // Include the folder containing the SQLite header files
+    //     .include("c_src")
+    //     .include("src")
+    //     // Add the specific SQLite subsystems you want to compile alongside Rust
+    //     .file("c_src/parse.c")
+    //     .file("c_src/vdbe.c")
+    //     .file("c_src/pager.c")
+    //     .file("c_src/btree.c")
+    //     // SQLite relies heavily on SQLITE_OMIT flags to strip features.
+    //     // For our Ninja port, we can aggressively strip out things we don't need!
+    //     .define("SQLITE_OMIT_PARSER", None)
+    //     .define("SQLITE_OMIT_AUTOVACUUM", None)
+    //     // Enable high optimization flags for the C side
+    //     .flag("-O3")
+    //     // Compile everything into a static library called "libsqlite_core.a"
+    //     .compile("sqlite_core");
 }

@@ -299,6 +299,10 @@ struct MemPage {
   u8 *aCellIdx;        /* The cell index area */
   u8 *aDataOfst;       /* Same as aData for leaves.  aData+4 for interior */
   DbPage *pDbPage;     /* Pager page handle */
+  // jordan: since I removed the linked list impl,
+  // the pageno itself becomes the offset on disk per block
+  // im going to add a direct pointer to the pager for later
+  Pager *pPager;
   u16 (*xCellSize)(MemPage*,u8*);             /* cellSizePtr method */
   void (*xParseCell)(MemPage*,u8*,CellInfo*); /* btreeParseCell method */
 };

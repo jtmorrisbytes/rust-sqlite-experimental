@@ -9338,12 +9338,6 @@ typedef  unsigned char* sqlite3_pcache_page ;
 
 
 
-// jordan: I forgot where this was defined and pasted it here
-struct PgHdr {
-  size_t page_id;  /* The true 0-indexed hardware array position */
-};
-
-
 
 /*
 ** CAPI3REF: Application Defined Page Cache.

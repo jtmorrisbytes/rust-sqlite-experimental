@@ -23,10 +23,10 @@
 #include "wal.h"
 
 
-// jordan: I forgot where this was defined and pasted it here
-struct PgHdr {
-  size_t page_id;  /* The true 0-indexed hardware array position */
-};
+// // jordan: I forgot where this was defined and pasted it here
+// struct PgHdr {
+//   size_t page_id;  /* The true 0-indexed hardware array position */
+// };
 
 /******************* NOTES ON THE DESIGN OF THE PAGER ************************
 **
@@ -4113,19 +4113,60 @@ static int pagerAcquireMapPage(
 }
 #endif
 
-/*
-** Release a reference to page pPg. pPg must have been returned by an
-** earlier call to pagerAcquireMapPage().
-*/
+
+
+
+
+
 static void pagerReleaseMapPage(PgHdr *pPg){
-  Pager *pPager = pPg->pPager;
+  // 1. Recover the owning parent pager from our lightweight proxy handle context.
+  // Since we are inside pager.c, we can read the parent pager pointer or context.
+  // Natively, this function took a PgHdr* (aliased to DbPage*).
+  Pager *pPager = pPg->pPager; 
   pPager->nMmapOut--;
-  pPg->pDirty = pPager->pMmapFreelist;
+
+  /* 
+   * THE FREELIST COMPACTION BRIDGE
+   * Natively, SQLite does: pPg->pDirty = pPager->pMmapFreelist;
+   * Because pPg no longer has a pDirty pointer, we use an inline type-cast 
+   * to treat your proxy structure as a node pointer, preserving the freelist 
+   * address chain inside the existing architecture.
+   */
+  *((PgHdr**)&pPg->page_id) = pPager->pMmapFreelist;
   pPager->pMmapFreelist = pPg;
 
+  // 2. Convert your 0-indexed page_id back to SQLite's 1-indexed page number
+  Pgno pgno = (Pgno)(pPg->page_id + 1);
+
+  // 3. Instant, branchless fetch to resolve the exact virtual byte address from Rust TLS
+  unsigned char *pData = sqlite3r_pcache_fetch_direct((size_t)pgno);
+  sqlite3r_pcache_set_flag(pPg->page_id, 1);
   assert( pPager->fd->pMethods->iVersion>=3 );
-  sqlite3OsUnfetch(pPager->fd, (i64)(pPg->pgno-1)*pPager->pageSize, pPg->pData);
+
+  /* 
+   * THE UN-FETCH COMMAND
+   * Pass your high-velocity, thread-isolated data pointer directly down to the VFS!
+   * The OS kernel handles the virtual page unmapping/cleaning flawlessly under the hood.
+   */
+  i64 iOffset = (i64)pPg->page_id * (i64)pPager->pageSize;
+  sqlite3OsUnfetch(pPager->fd, iOffset, pData);
 }
+
+
+
+// /*
+// ** Release a reference to page pPg. pPg must have been returned by an
+// ** earlier call to pagerAcquireMapPage().
+// */
+// static void pagerReleaseMapPage(Pager *pPg){
+//   Pager *pPager = pPg->pPager;
+//   pPager->nMmapOut--;
+//   pPg->pDirty = pPager->pMmapFreelist;
+//   pPager->pMmapFreelist = pPg;
+
+//   assert( pPager->fd->pMethods->iVersion>=3 );
+//   sqlite3OsUnfetch(pPager->fd, (i64)(pPg->pgno-1)*pPager->pageSize, pPg->pData);
+// }
 
 /*
 ** Free all PgHdr objects stored in the Pager.pMmapFreelist list.
@@ -5711,16 +5752,39 @@ int sqlite3PagerGet(
 ** returns NULL if the page is not in cache or if a disk I/O error
 ** has ever happened.
 */
+
 DbPage *sqlite3PagerLookup(Pager *pPager, Pgno pgno){
-  sqlite3_pcache_page *pPage;
-  assert( pPager!=0 );
-  assert( pgno!=0 );
-  assert( pPager->pPCache!=0 );
-  pPage = sqlite3PcacheFetch(pPager->pPCache, pgno, 0);
-  assert( pPage==0 || pPager->hasHeldSharedLock );
-  if( pPage==0 ) return 0;
-  return sqlite3PcacheFetchFinish(pPager->pPCache, pgno, pPage);
+  // Convert 1-indexed database page numbers to your 0-indexed hardware array offset
+  size_t target_id = (size_t)pgno - 1;
+
+  // Direct, fast unsigned register check against your Rust virtual capacity limit.
+  // This executes in a fraction of a CPU clock cycle!
+  if( target_id < sqlite3r_pcache_get_capacity() ){
+    // Allocate a lightweight 8-byte descriptor shell to satisfy the C caller contracts
+    DbPage *pPage = (DbPage*)sqlite3MallocZero(sizeof(DbPage));
+    if( pPage==0 ) return NULL;
+
+    pPage->page_id = target_id;
+    return pPage; /* Hand back the valid DbPage* handle to the playback engine */
+  }
+
+  // Outside our current virtual frontiers: physically not in memory yet
+  return NULL;
 }
+
+
+
+
+// DbPage *sqlite3PagerLookup(Pager *pPager, Pgno pgno){
+//   sqlite3_pcache_page *pPage;
+//   assert( pPager!=0 );
+//   assert( pgno!=0 );
+//   assert( pPager->pPCache!=0 );
+//   pPage = sqlite3PcacheFetch(pPager->pPCache, pgno, 0);
+//   assert( pPage==0 || pPager->hasHeldSharedLock );
+//   if( pPage==0 ) return 0;
+//   return sqlite3PcacheFetchFinish(pPager->pPCache, pgno, pPage);
+// }
 
 /*
 ** Release a page reference.
@@ -5736,6 +5800,7 @@ DbPage *sqlite3PagerLookup(Pager *pPager, Pgno pgno){
 ** checks the total number of outstanding pages and if the number of
 ** pages reaches zero it drops the database lock.
 */
+
 void sqlite3PagerUnrefNotNull(DbPage *pPg){
   TESTONLY( Pager *pPager = pPg->pPager; )
   assert( pPg!=0 );
