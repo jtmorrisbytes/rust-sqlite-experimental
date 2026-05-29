@@ -49,47 +49,47 @@ fn generate_opcodes() {
 
 
 fn main() {
-    // 1. Tell Cargo to rerun this script ONLY if the C files change
-    println!("cargo:rerun-if-changed=c_src");
-    println!("cargo:rerun-if-changed=c_src");
+    // // 1. Tell Cargo to rerun this script ONLY if the C files change
+    // println!("cargo:rerun-if-changed=c_src");
+    // println!("cargo:rerun-if-changed=c_src");
 
-    // 1. Get Cargo's isolated build output directory
-    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    let lemon_exe_name = if cfg!(windows) { "lemon.exe" } else { "lemon" };
-    let lemon_exe_path = out_dir.join(lemon_exe_name);
+    // // 1. Get Cargo's isolated build output directory
+    // let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    // let lemon_exe_name = if cfg!(windows) { "lemon.exe" } else { "lemon" };
+    // let lemon_exe_path = out_dir.join(lemon_exe_name);
 
-    // 2. Use CC to compile lemon.c automatically
-    let compiler = cc::Build::new();
-    let compiler_cmd = compiler.get_compiler();
+    // // 2. Use CC to compile lemon.c automatically
+    // let compiler = cc::Build::new();
+    // let compiler_cmd = compiler.get_compiler();
     
-    let mut cc_cmd = Command::new(compiler_cmd.path());
+    // let mut cc_cmd = Command::new(compiler_cmd.path());
     
-    // Add compiler args to output the executable to OUT_DIR
-    if compiler_cmd.is_like_msvc() {
-        cc_cmd.args(&["c_src/lemon.c", &format!("/Fe:{}", lemon_exe_path.display())]);
-    } else {
-        cc_cmd.args(&["c_src/lemon.c", "-o", &lemon_exe_path.to_string_lossy()]);
-    }
+    // // Add compiler args to output the executable to OUT_DIR
+    // if compiler_cmd.is_like_msvc() {
+    //     cc_cmd.args(&["c_src/lemon.c", &format!("/Fe:{}", lemon_exe_path.display())]);
+    // } else {
+    //     cc_cmd.args(&["c_src/lemon.c", "-o", &lemon_exe_path.to_string_lossy()]);
+    // }
 
-    // Set any environment variables CC needs (like target flags)
-    for (key, val) in compiler_cmd.env() {
-        cc_cmd.env(key, val);
-    }
+    // // Set any environment variables CC needs (like target flags)
+    // for (key, val) in compiler_cmd.env() {
+    //     cc_cmd.env(key, val);
+    // }
 
-    let compile_status = cc_cmd.status().expect("Failed to compile lemon.c via CC");
-    assert!(compile_status.success(), "C compilation of lemon.c failed");
+    // let compile_status = cc_cmd.status().expect("Failed to compile lemon.c via CC");
+    // assert!(compile_status.success(), "C compilation of lemon.c failed");
 
-    // 3. EXECUTION FIX: Run the tool, forcing the working directory to be 'c_src'
-    // This makes lemon naturally find 'lempar.c' and 'parse.y' right next to each other!
-    let lemon_status = Command::new(&lemon_exe_path)
-        .current_dir("c_src") // <-- THE FIX: Moves execution context into c_src folder
-        .arg("parse.y")       // Now it just looks for 'parse.y' in its current directory
-        .status()
-        .expect("Failed to run lemon binary");
+    // // 3. EXECUTION FIX: Run the tool, forcing the working directory to be 'c_src'
+    // // This makes lemon naturally find 'lempar.c' and 'parse.y' right next to each other!
+    // let lemon_status = Command::new(&lemon_exe_path)
+    //     .current_dir("c_src") // <-- THE FIX: Moves execution context into c_src folder
+    //     .arg("parse.y")       // Now it just looks for 'parse.y' in its current directory
+    //     .status()
+    //     .expect("Failed to run lemon binary");
 
-    assert!(lemon_status.success(), "Lemon failed to process parse.y");
+    // assert!(lemon_status.success(), "Lemon failed to process parse.y");
 
-    generate_opcodes();
+    // generate_opcodes();
 
     // the C source is broken right now and wont compile :(
 
